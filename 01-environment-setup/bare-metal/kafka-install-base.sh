@@ -95,8 +95,8 @@ SYSTEMD_TEMPLATE="/etc/systemd/system/kafka-test@.service"
 # 1. Install Dependencies
 # ----------------------------
 spinner "[1/4] Installing dependencies..." \
-    "sudo apt-get update -y || sudo yum update -y; \
-     sudo apt-get install -y openjdk-17-jre-headless wget tar || sudo yum install -y java-17-openjdk wget tar"
+    "sudo apt-get update -y; \
+     sudo apt-get install -y openjdk-17-jre-headless wget tar"
 
 # ----------------------------
 # 2. Create a Kafka user
