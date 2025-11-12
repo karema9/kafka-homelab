@@ -70,12 +70,15 @@ spinner() {
 # ----------------------------
 echo -e "${CYAN}"
 cat << "EOF"
- __     __     _        _             _
- \ \   / /    (_)      | |           | |
-  \ \_/ /_   _ _ ______| |__   ___   | | ___  _ __   ___
-   \   /| | | | |______| '_ \ / _ \  | |/ _ \| '_ \ / _ \
-    | | | |_| | |      | | | | (_) | | | (_) | | | |  __/
-    |_|  \__,_|_|      |_| |_|\___/  |_|\___/|_| |_|\___|
+echo -e "
+          __         __                                      
+         /\_\       /\ \__                                   
+ __  __ /\/_/   _ __\ \ ,_\  __  __    ___     ____    ___  
+/\ \/\ \  /\ \ /\`'__\ \ \/ /\ \/\ \  / __\`\  /',__\  / __\`\\
+\ \ \_/ | \ \ \\ \ \/ \ \ \_\ \ \_\ \/\ \L\ \/\__, \`\/\ \L\ \\
+ \ \___/   \ \_\\ \_\  \ \__\\ \____/\ \____/\/\____/\ \____/
+  \/__/     \/_/ \/_/   \/__/ \/___/  \/___/  \/___/  \/___/ 
+"
 EOF
 echo -e "${BOLD}==================== V I R T U O S O   H O M E L A B ====================${NC}"
 echo -e "${BLUE}--- Kafka Multi-Broker Base Installer (TEST Environment) ---${NC}"
@@ -94,9 +97,15 @@ SYSTEMD_TEMPLATE="/etc/systemd/system/kafka-test@.service"
 # ----------------------------
 # 1. Install Dependencies
 # ----------------------------
-spinner "[1/4] Installing dependencies..." \
-    "sudo apt-get update -y; \
-     sudo apt-get install -y openjdk-17-jre-headless wget tar"
+
+echo -e "${YELLOW}[1/4] ⚙️  Installing dependencies...${NC}"
+# We are running this in the foreground (no spinner) to see error messages.
+(sudo apt-get update -y && sudo apt-get install -y openjdk-17-jre-headless wget tar)
+if [ $? -ne 0 ]; then
+    echo -e "${RED}✗ Dependency installation failed. Please check the 'apt' errors above.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ Dependencies installed successfully.${NC}"
 
 # ----------------------------
 # 2. Create a Kafka user
