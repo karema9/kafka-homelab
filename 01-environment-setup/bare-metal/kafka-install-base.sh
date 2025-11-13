@@ -163,16 +163,16 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-echo -e "${GREEN}✓ Systemd template created and reloaded.${NC}"
+echo -ne "${GREEN}✓ Systemd template created and reloaded.${NC}"
 
 # ----------------------------
 # 5. Final Summary
 # ----------------------------
 echo
-echo -e "${GREEN}===========================================================${NC}"
-echo -e "${GREEN}✅ ${BOLD}Kafka base TEST installation complete!${NC}"
+echo -ne "${GREEN}===========================================================${NC}"
+echo -ne "${GREEN}✅ ${BOLD}Kafka base TEST installation complete!${NC}"
 printf "  %-20s %s\n" "Binaries are in:" "${BOLD}$INSTALL_DIR${NC}"
 printf "  %-20s %s\n" "Systemd Template:" "${BOLD}$SYSTEMD_TEMPLATE${NC}"
-echo -e "${GREEN}===========================================================${NC}"
-echo -e "Next, run ${BOLD}'./kafka-add-broker-TEST.sh'${NC} to add broker instances."
+echo -ne "${GREEN}===========================================================${NC}"
+echo -ne "Next, run ${BOLD}'./kafka-add-broker-TEST.sh'${NC} to add broker instances."
 echo
