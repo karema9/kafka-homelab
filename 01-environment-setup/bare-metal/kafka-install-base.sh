@@ -49,7 +49,8 @@ spinner() {
     # Show spinner
     while kill -0 $PID 2>/dev/null; do
         for i in $(seq 0 3); do
-            echo -n -e "${YELLOW}${SPIN:$i:1}\033[D${NC}"
+            # Use \r (Carriage Return) to go to start of line
+            echo -n -e "${YELLOW}\r⏳ $MSG ${SPIN:$i:1}${NC}"
             sleep 0.1
         done
     done
@@ -57,14 +58,20 @@ spinner() {
     # Wait for the command to exit and check status
     wait $PID
     if [ $? -eq 0 ]; then
-        echo -e "${YELLOW}\033[D${GREEN}✓ Done.${NC}"
+        # On success:
+        # 1. \r = Carriage return (go to start of line)
+        # 2. \033[K = Clear from cursor to end of line
+        # 3. Print the NEW message
+        echo -e "\r\033[K${GREEN}✓ $MSG${NC}"
     else
-        echo -e "${YELLOW}\033[D${RED}✗ Failed.${NC}"
+        # On failure:
+        # 1. \r\033[K = Clear the line
+        # 2. Print the failure message
+        echo -e "\r\033[K${RED}✗ $MSG${NC}"
         echo -e "${RED}Error running: $CMD${NC}"
         exit 1
     fi
 }
-
 # ----------------------------
 # Header
 # ----------------------------
