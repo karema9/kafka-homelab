@@ -120,7 +120,7 @@ write_kraft_config() {
 # KRaft Controller and Broker Configuration
 process.roles=broker,controller
 node.id=1
-controller.quorum.voters=@localhost:9093
+controller.quorum.voters=1@localhost:9093
 
 # Listeners
 listeners=PLAINTEXT://localhost:9092,CONTROLLER://localhost:9093
