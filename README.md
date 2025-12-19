@@ -1,9 +1,22 @@
 <div align="center">
 
-# 🧠 Kafka Homelab Learning Path  
+```
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║   ██╗  ██╗ █████╗ ███████╗██╗  ██╗ █████╗     ██╗  ██╗ ██████╗ ███╗   ███╗███████╗██╗      █████╗ ██████╗    ║
+║   ██║ ██╔╝██╔══██╗██╔════╝██║ ██╔╝██╔══██╗    ██║  ██║██╔═══██╗████╗ ████║██╔════╝██║     ██╔══██╗██╔══██╗   ║
+║   █████╔╝ ███████║█████╗  █████╔╝ ███████║    ███████║██║   ██║██╔████╔██║█████╗  ██║     ███████║██████╔╝   ║
+║   ██╔═██╗ ██╔══██║██╔══╝  ██╔═██╗ ██╔══██║    ██╔══██║██║   ██║██║╚██╔╝██║██╔══╝  ██║     ██╔══██║██╔══██╗   ║
+║   ██║  ██╗██║  ██║██║     ██║  ██╗██║  ██║    ██║  ██║╚██████╔╝██║ ╚═╝ ██║███████╗███████╗██║  ██║██████╔╝   ║
+║   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝╚═════╝    ║
+║                                                                           ║
+║                        LEARNING PATH                                      ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+```
 
-A **hands-on journey** to mastering **Apache Kafka** — from fundamentals to real-world, production-grade systems.  
-Deploy, automate, monitor, and scale your own **Kafka cluster** using open-source tools.
+### A comprehensive, hands-on guide to mastering Apache Kafka
+**From fundamentals to production-grade distributed systems**
 
 ---
 
@@ -15,207 +28,197 @@ Deploy, automate, monitor, and scale your own **Kafka cluster** using open-sourc
 ![Ansible](https://img.shields.io/badge/Automation-Ansible-black?logo=ansible)
 ![Python](https://img.shields.io/badge/Client-Python-blue?logo=python)
 
----
-
 </div>
 
-## 📘 Overview
+---
 
-This repository is a **comprehensive, hands-on guide** to learning **Apache Kafka** by building your own **Kafka Homelab**.  
-It’s designed for engineers who want to go from **beginner → advanced**, using Kafka in **real-world streaming systems**.
+## Overview
+
+This repository provides a structured, hands-on curriculum for learning Apache Kafka by building a complete Kafka Homelab environment. The content is designed for engineers seeking to progress from beginner to advanced proficiency in real-world streaming systems architecture and operations.
 
 ---
 
-## 🎯 Goals
+## Learning Objectives
 
-- 🔍 Understand **Kafka architecture and internals**
-- 🧩 Deploy Kafka on **bare metal, Docker, Kubernetes, or via Ansible**
-- 🛠️ Build, **secure, monitor**, and **scale** Kafka clusters
-- 🔗 Work with **Kafka Connect**, **Streams**, and **ksqlDB**
-- ⚡ Implement **real-time data projects** (fraud detection, observability, pipelines)
-- 🧠 Deep-dive into **Kafka performance tuning** and **troubleshooting**
+- Understand Kafka architecture, internals, and core components
+- Deploy Kafka on bare metal, Docker, Kubernetes, or via Ansible automation
+- Build, secure, monitor, and scale production-ready Kafka clusters
+- Work with Kafka Connect, Kafka Streams, and ksqlDB
+- Implement real-time data processing systems for fraud detection, observability, and ETL pipelines
+- Master Kafka performance tuning and operational troubleshooting
 
 ---
 
-## 🧱 Structure
+## Repository Structure
 
-| Section | Focus |
+| Section | Focus Area |
 |----------|--------|
-| `00` | Introduction & Homelab Setup |
+| `00` | Introduction and Homelab Setup |
 | `01` | Installation and Configuration |
 | `02` | Core Kafka Concepts |
-| `03` | Kafka Operations & Administration |
-| `04` | Kafka Streams & Connect |
+| `03` | Kafka Operations and Administration |
+| `04` | Kafka Streams and Connect |
 | `05` | Advanced Topics |
 | `06` | Real-world Projects |
-| `07` | Books & Learning Resources |
+| `07` | Books and Learning Resources |
 
 ---
 
-## 🧰 Tech Stack
+## Technology Stack
 
 | Category | Tools |
 |-----------|-------|
-| **Core Messaging** | Apache Kafka (latest) |
+| **Core Messaging** | Apache Kafka (latest stable release) |
 | **Coordination** | Zookeeper / KRaft |
-| **Monitoring** | Prometheus + Grafana |
+| **Monitoring** | Prometheus, Grafana |
 | **Automation** | Ansible |
-| **Deployment** | Docker Compose / Kubernetes |
+| **Deployment** | Docker Compose, Kubernetes |
 | **Client Development** | Python |
 | **Visualization** | Grafana Dashboards |
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
-### 1️⃣ Clone the Repository
+### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/<your-username>/kafka-homelab-learning-path.git
 cd kafka-homelab-learning-path
+```
+
+### Step 2: Configure Your Homelab Environment
+
+Begin with the environment setup documentation:
+`00-introduction/environment-architecture.md`
+
+Select your preferred deployment method:
+
+- Bare Metal Installation
+- Docker Compose Cluster
+- Kubernetes (Strimzi Operator)
+- Automated Deployment with Ansible
+
+### Step 3: Follow the Sequential Learning Path
+
+Each section builds progressively toward production-grade Kafka expertise and operational proficiency.
+
 ---
-````
 
-### 2️⃣ Set Up Your Homelab
+## Example Use Cases
 
-Start with:
-📄 `00-introduction/environment-architecture.md`
-
-Choose your preferred setup path:
-
-* ⚙️ Bare Metal Installation
-* 🐳 Docker Compose Cluster
-* ☸️ Kubernetes (Strimzi Operator)
-* 🤖 Automated with Ansible
-
-### 3️⃣ Learn Sequentially
-
-Each section builds progressively toward **production-grade Kafka mastery**.
-
----
-
-## 💡 Example Use Cases
-
-| Project                | Description                                                     |
+| Project | Description |
 | ---------------------- | --------------------------------------------------------------- |
-| 🕵️‍♂️ Fraud Detection | Build a Kafka + Python pipeline for real-time anomaly detection |
-| 🎮 Gaming Analytics    | Stream and process casino bet events in real-time               |
-| 📊 Observability       | Monitor Kafka metrics with Prometheus & Grafana                 |
-| 🚦 IoT Sensor Data     | Process and visualize IoT streams with Kafka Streams            |
-| 🧾 ETL Pipelines       | Ingest CSV or database changes into BigQuery / PostgreSQL       |
+| Fraud Detection System | Build a Kafka and Python pipeline for real-time anomaly detection |
+| Gaming Analytics Platform | Stream and process casino bet events in real-time |
+| Infrastructure Observability | Monitor Kafka metrics with Prometheus and Grafana |
+| IoT Sensor Data Processing | Process and visualize IoT streams with Kafka Streams |
+| ETL Data Pipelines | Ingest CSV or database changes into BigQuery or PostgreSQL |
 
 ---
 
-## 🌍 Contributing
+## Contributing
 
-Contributions are **highly encouraged**!
-If you find issues, want to improve docs, or add exercises — open a **PR** or start a **discussion**.
+Contributions are welcome and encouraged. If you identify issues, wish to improve documentation, or add exercises, please submit a pull request or open a discussion.
 
-> Let’s make this an open, community-driven learning resource for data engineers and DevOps practitioners.
-
----
-
-## 📚 Kafka Learning Resources & Reading Path
-
-> A curated list of **essential books, blogs, and courses** for mastering Apache Kafka, data streaming, and distributed system design.  
-> Perfect for your **Kafka Homelab** learning journey 🧠⚡.
+This repository aims to be a community-driven learning resource for data engineers and DevOps practitioners.
 
 ---
 
-### 🧩 Core Kafka & Streaming Fundamentals
+## Kafka Learning Resources and Reading Path
 
-| 📘 Book | ✍️ Author(s) | 🧭 Focus |
+A curated collection of essential books, blogs, and courses for mastering Apache Kafka, data streaming, and distributed system design.
+
+---
+
+### Core Kafka and Streaming Fundamentals
+
+| Book | Author(s) | Focus |
 |---------|--------------|----------|
-| **[Kafka: The Definitive Guide](https://www.confluent.io/resources/kafka-the-definitive-guide/)** | Neha Narkhede, Gwen Shapira, Todd Palino | Complete guide to Kafka’s internals, APIs, and operations. |
-| **[Designing Data-Intensive Applications](https://dataintensive.net/)** | Martin Kleppmann | Deep dive into distributed data systems and consistency models. |
-| **[Streaming Systems](https://streamingsystems.net/)** | Tyler Akidau, Slava Chernyak | Theoretical and practical foundations of stream processing. |
-| **Kafka Security** | Raúl Estrada | Encryption, ACLs, and authentication for Kafka clusters. |
-| **Mastering Kafka Streams & ksqlDB** | Mitch Seymour | Real-time analytics and stream processing patterns. |
+| **[Kafka: The Definitive Guide](https://www.confluent.io/resources/kafka-the-definitive-guide/)** | Neha Narkhede, Gwen Shapira, Todd Palino | Comprehensive guide to Kafka internals, APIs, and operations |
+| **[Designing Data-Intensive Applications](https://dataintensive.net/)** | Martin Kleppmann | Deep dive into distributed data systems and consistency models |
+| **[Streaming Systems](https://streamingsystems.net/)** | Tyler Akidau, Slava Chernyak | Theoretical and practical foundations of stream processing |
+| **Kafka Security** | Raúl Estrada | Encryption, ACLs, and authentication for Kafka clusters |
+| **Mastering Kafka Streams and ksqlDB** | Mitch Seymour | Real-time analytics and stream processing patterns |
 
 ---
 
-### ⚡ Advanced Kafka & Internals
+### Advanced Kafka and Internals
 
-| 📘 Resource | 🧭 Description |
+| Resource | Description |
 |-------------|----------------|
-| **[Kafka in Action](https://www.manning.com/books/kafka-in-action)** | Practical guide for building resilient Kafka pipelines. |
-| **[Effective Kafka](https://www.manning.com/books/effective-kafka)** — Emil Koutanov | Operational tuning and architecture best practices. |
-| **[I ♥ Logs](https://queue.acm.org/detail.cfm?id=3220266)** — Jay Kreps | A classic essay on log-based data architectures. |
-| **[Confluent Blog: Kafka Internals Explained](https://www.confluent.io/blog/)** | Learn replication, partitioning, and leader election in detail. |
+| **[Kafka in Action](https://www.manning.com/books/kafka-in-action)** | Practical guide for building resilient Kafka pipelines |
+| **[Effective Kafka](https://www.manning.com/books/effective-kafka)** — Emil Koutanov | Operational tuning and architecture best practices |
+| **[I ♥ Logs](https://queue.acm.org/detail.cfm?id=3220266)** — Jay Kreps | Classic essay on log-based data architectures |
+| **[Confluent Blog: Kafka Internals Explained](https://www.confluent.io/blog/)** | Detailed coverage of replication, partitioning, and leader election |
 
 ---
 
-### ☸️ DevOps, Automation & Observability
+### DevOps, Automation, and Observability
 
-| 🔧 Topic | 📗 Recommended Book / Resource |
+| Topic | Recommended Resource |
 |----------|--------------------------------|
-| **Automation & Infrastructure** | [*Ansible for DevOps*](https://www.ansiblefordevops.com/) — Jeff Geerling |
-| **Observability & Metrics** | [*Prometheus: Up & Running*](https://www.oreilly.com/library/view/prometheus-up/9781492034131/) — Brian Brazil |
+| **Automation and Infrastructure** | [*Ansible for DevOps*](https://www.ansiblefordevops.com/) — Jeff Geerling |
+| **Observability and Metrics** | [*Prometheus: Up & Running*](https://www.oreilly.com/library/view/prometheus-up/9781492034131/) — Brian Brazil |
 | **Reliability Engineering** | [*Site Reliability Engineering (SRE)*](https://sre.google/books/) — Google SRE Team |
 | **Orchestration** | [*Kubernetes in Action*](https://www.manning.com/books/kubernetes-in-action) — Marko Lukša |
 
 ---
 
-### 🧮 Data Engineering & Real-Time Systems
+### Data Engineering and Real-Time Systems
 
-| 📗 Title | ✍️ Author | 💡 Focus |
+| Title | Author | Focus |
 |----------|------------|----------|
-| **[Fundamentals of Data Engineering](https://www.oreilly.com/library/view/fundamentals-of-data/9781098108304/)** | Joe Reis, Matt Housley | Modern data engineering foundations for pipelines and systems. |
-| **[Designing Event-Driven Systems](https://www.confluent.io/resources/designing-event-driven-systems/)** | Ben Stopford | Event-driven microservices and stream-first design. |
-| **[Streaming Data](https://www.oreilly.com/library/view/streaming-data/9781491974315/)** | Andrew Psaltis | Integration of Kafka with Spark, Flink, and Beam. |
-| **[Data Mesh: Delivering Data-Driven Value at Scale](https://www.oreilly.com/library/view/data-mesh/9781492092384/)** | Zhamak Dehghani | Principles of decentralized data ownership and streaming. |
+| **[Fundamentals of Data Engineering](https://www.oreilly.com/library/view/fundamentals-of-data/9781098108304/)** | Joe Reis, Matt Housley | Modern data engineering foundations for pipelines and systems |
+| **[Designing Event-Driven Systems](https://www.confluent.io/resources/designing-event-driven-systems/)** | Ben Stopford | Event-driven microservices and stream-first design |
+| **[Streaming Data](https://www.oreilly.com/library/view/streaming-data/9781491974315/)** | Andrew Psaltis | Integration of Kafka with Spark, Flink, and Beam |
+| **[Data Mesh: Delivering Data-Driven Value at Scale](https://www.oreilly.com/library/view/data-mesh/9781492092384/)** | Zhamak Dehghani | Principles of decentralized data ownership and streaming |
 
 ---
 
-### 🎓 Hands-On Labs & Online Courses
+### Hands-On Labs and Online Courses
 
-| 🧰 Platform | 📘 Course | 🔗 Link |
+| Platform | Course | Link |
 |-------------|------------|--------|
-| 🧡 **Confluent Academy** | Developer, Admin, and Streaming Courses | [developer.confluent.io/learn](https://developer.confluent.io/learn) |
-| 🎥 **YouTube (Confluent)** | Kafka Streams, ksqlDB, Connect tutorials | [Confluent YouTube Channel](https://www.youtube.com/c/Confluent) |
-| 🎓 **Udemy** | *Kafka for Beginners* — Stéphane Maarek | [Udemy Course](https://www.udemy.com/course/apache-kafka/) |
-| ⚙️ **Aiven & Redpanda Labs** | Kafka playgrounds for experimentation | [Aiven.io](https://aiven.io/) / [Redpanda.com](https://redpanda.com/) |
+| **Confluent Academy** | Developer, Admin, and Streaming Courses | [developer.confluent.io/learn](https://developer.confluent.io/learn) |
+| **YouTube (Confluent)** | Kafka Streams, ksqlDB, Connect tutorials | [Confluent YouTube Channel](https://www.youtube.com/c/Confluent) |
+| **Udemy** | *Kafka for Beginners* — Stéphane Maarek | [Udemy Course](https://www.udemy.com/course/apache-kafka/) |
+| **Aiven and Redpanda Labs** | Kafka playgrounds for experimentation | [Aiven.io](https://aiven.io/) / [Redpanda.com](https://redpanda.com/) |
 
 ---
 
-### 📰 Blogs, Talks & Engineering Articles
+### Blogs, Talks, and Engineering Articles
 
-| 🌐 Source | 🧠 Highlight |
+| Source | Highlight |
 |------------|-------------|
-| **[The Log: Jay Kreps (LinkedIn Engineering)](https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying)** | Classic essay on log-based architecture. |
-| **[Confluent Blog](https://www.confluent.io/blog/)** | Kafka best practices, real-world use cases, and internal design. |
-| **[Uber Engineering Blog](https://eng.uber.com/)** | Scaling Kafka for billions of messages per second. |
-| **[Netflix Tech Blog](https://netflixtechblog.com/)** | Kafka usage patterns at scale and resilience lessons. |
-| **[LinkedIn Engineering Blog](https://engineering.linkedin.com/blog)** | Home of Kafka’s origin stories and production challenges. |
+| **[The Log: Jay Kreps (LinkedIn Engineering)](https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying)** | Classic essay on log-based architecture |
+| **[Confluent Blog](https://www.confluent.io/blog/)** | Kafka best practices, real-world use cases, and internal design |
+| **[Uber Engineering Blog](https://eng.uber.com/)** | Scaling Kafka for billions of messages per second |
+| **[Netflix Tech Blog](https://netflixtechblog.com/)** | Kafka usage patterns at scale and resilience lessons |
+| **[LinkedIn Engineering Blog](https://engineering.linkedin.com/blog)** | Origin stories and production challenges |
 
 ---
 
-### 🧠 Practice Ideas for Your Kafka Homelab
+### Practice Projects for Your Kafka Homelab
 
-🔥 Try these projects to solidify your knowledge:
+The following projects are recommended to solidify understanding:
 
-- 🧾 Build a **Kafka Producer-Consumer** system using Python or Go.  
-- 📈 Set up **Prometheus + Grafana** dashboards to visualize Kafka metrics.  
-- ☸️ Deploy a **Strimzi Operator**-based cluster in Minikube or K3s.  
-- 💾 Create a **Kafka → BigQuery** streaming pipeline with Kafka Connect.  
-- 🧱 Simulate **broker failover, partition rebalancing, ISR shrinkage**.  
-- 🧮 Integrate **Kafka Streams + ksqlDB** for real-time analytics.  
-- 🔍 Implement a **real-time fraud detection pipeline** using Prefect or Flink. 
-
----
-
-## 📖 License
-
-This project is licensed under the **[MIT License](LICENSE)**.
+- Build a Kafka Producer-Consumer system using Python or Go
+- Set up Prometheus and Grafana dashboards to visualize Kafka metrics
+- Deploy a Strimzi Operator-based cluster in Minikube or K3s
+- Create a Kafka to BigQuery streaming pipeline with Kafka Connect
+- Simulate broker failover, partition rebalancing, and ISR shrinkage
+- Integrate Kafka Streams and ksqlDB for real-time analytics
+- Implement a real-time fraud detection pipeline using Prefect or Flink
 
 ---
 
-<div align="center">
-Made with ❤️ for learners building streaming systems from scratch.  
-<br/>
-<a href="https://github.com/<your-username>/kafka-homelab-learning-path">⭐ Star this repo</a> if you find it helpful!
-</div>
-```
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
+**Kafka Homelab Learning Path** — A structured approach to building streaming systems expertise.
+
+[Star this repository](https://github.com/<your-username>/kafka-homelab-learning-path) to support the project.
