@@ -235,7 +235,7 @@ sinks:
   kafka_metrics:
     type: kafka
     inputs: ["format_metrics"]
-    bootstrap_servers: "${KAFKA_BROKERS:?KAFKA_BROKERS environment variable required}"
+    bootstrap_servers: "${KAFKA_BROKERS:-100.109.78.25:9092,100.120.104.76:9092,100.68.40.33:9092}"
     topic: infra.metrics.system
     encoding:
       codec: json
