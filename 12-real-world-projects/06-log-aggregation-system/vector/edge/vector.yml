@@ -1,0 +1,278 @@
+# Vector Edge Agent - Validated Configuration
+data_dir: /var/lib/vector
+
+# =============================================================================
+# SOURCES - Collect logs and metrics
+# =============================================================================
+
+sources:
+  # ===== LOG SOURCES =====
+  
+  # Collect all journald (systemd) logs
+  journald_all:
+    type: journald
+    journal_directory: /var/log/journal
+    current_only: false
+    batch_size: 16
+    exclude_units:
+      - systemd-logind.service
+
+  # Syslog via UDP
+  syslog_udp:
+    type: syslog
+    mode: udp
+    address: 0.0.0.0:514
+    max_length: 102400
+
+  # Syslog via TCP
+  syslog_tcp:
+    type: syslog
+    mode: tcp
+    address: 0.0.0.0:601
+    max_length: 102400
+
+  # Syslog via Unix socket
+  syslog_unix:
+    type: syslog
+    mode: unix
+    path: /var/run/vector-syslog.sock
+
+  # ===== METRICS SOURCES =====
+  
+  host_metrics:
+    type: host_metrics
+    scrape_interval_secs: 15
+    collectors: ["cpu", "disk", "filesystem", "load", "host", "memory", "network"]
+    namespace: node
+    filesystem:
+      devices:
+        excludes: ["binfmt_misc"]
+      filesystems:
+        excludes: ["binfmt_misc"]
+      mountpoints:
+        excludes: ["*/proc/sys/fs/binfmt_misc"]
+    disk:
+      devices:
+        excludes: ["dm-*", "loop*"]
+
+  internal_metrics:
+    type: internal_metrics
+    namespace: vector_edge
+
+# =============================================================================
+# TRANSFORMS - Process logs
+# =============================================================================
+
+transforms:
+  # ----- LOG TRANSFORMS -----
+  
+  # Add metadata to journald logs
+  add_metadata_journald:
+    type: remap
+    inputs: ["journald_all"]
+    source: |
+      .hostname = get_hostname!()
+      .environment = get_env_var!("ENVIRONMENT") ?? "homelab"
+      .source_type = "journald"
+      .collector = "vector-edge"
+      .data_type = "log"
+      if !exists(.timestamp) { .timestamp = now() }
+
+  # Add metadata to syslog
+  add_metadata_syslog:
+    type: remap
+    inputs: ["syslog_udp", "syslog_tcp", "syslog_unix"]
+    source: |
+      .hostname = .hostname ?? get_hostname!()
+      .environment = get_env_var!("ENVIRONMENT") ?? "homelab"
+      .source_type = "syslog"
+      .collector = "vector-edge"
+      .data_type = "log"
+      if !exists(.timestamp) { .timestamp = now() }
+
+  # Normalize journald log levels
+  normalize_level_journald:
+    type: remap
+    inputs: ["add_metadata_journald"]
+    source: |
+      priority = to_int(.PRIORITY) ?? 6
+      .level = if priority <= 2 { "fatal" } 
+               else if priority == 3 { "error" } 
+               else if priority == 4 { "warn" } 
+               else if priority == 5 { "notice" } 
+               else if priority == 6 { "info" } 
+               else { "debug" }
+      
+      if exists(._SYSTEMD_UNIT) {
+        .service = replace(string!(._SYSTEMD_UNIT), r'\.service$', "")
+      } else if exists(.SYSLOG_IDENTIFIER) {
+        .service = string!(.SYSLOG_IDENTIFIER)
+      } else {
+        .service = "unknown"
+      }
+      
+      if exists(.MESSAGE) { .message = string!(.MESSAGE) } 
+      else { .message = encode_json(.) }
+      
+      if exists(._PID) { .pid = to_int(._PID) ?? null }
+      if exists(._COMM) { .process = string!(._COMM) }
+
+  # Normalize syslog levels
+  normalize_level_syslog:
+    type: remap
+    inputs: ["add_metadata_syslog"]
+    source: |
+      severity = to_int(.severity) ?? 6
+      .level = if severity <= 2 { "fatal" } 
+               else if severity == 3 { "error" } 
+               else if severity == 4 { "warn" } 
+               else if severity == 5 { "notice" } 
+               else if severity == 6 { "info" } 
+               else { "debug" }
+      
+      if exists(.appname) { .service = string!(.appname) } 
+      else if exists(.SYSLOG_IDENTIFIER) { .service = string!(.SYSLOG_IDENTIFIER) } 
+      else { .service = "unknown" }
+      
+      if !exists(.message) { .message = encode_json(.) }
+      if exists(.procid) { .pid = to_int(.procid) ?? null }
+
+  # Clean up journald fields
+  cleanup_journald:
+    type: remap
+    inputs: ["normalize_level_journald"]
+    source: |
+      del(.PRIORITY)
+      del(.SYSLOG_FACILITY)
+      del(.SYSLOG_IDENTIFIER)
+      del(.SYSLOG_PID)
+      del(._SYSTEMD_UNIT)
+      del(._BOOT_ID)
+      del(._MACHINE_ID)
+      del(._HOSTNAME)
+      del(._TRANSPORT)
+      del(._PID)
+      del(._UID)
+      del(._GID)
+      del(._COMM)
+      del(._EXE)
+      del(._CMDLINE)
+      del(._CAP_EFFECTIVE)
+      del(._SELINUX_CONTEXT)
+      del(._SYSTEMD_CGROUP)
+      del(._SYSTEMD_SLICE)
+      del(._SYSTEMD_INVOCATION_ID)
+      del(._SOURCE_REALTIME_TIMESTAMP)
+      del(.MESSAGE)
+      
+      if length(.message) > 10000 {
+        .message = slice!(.message, 0, 10000)
+        .truncated = true
+      }
+
+  # Clean up syslog fields
+  cleanup_syslog:
+    type: remap
+    inputs: ["normalize_level_syslog"]
+    source: |
+      del(.severity)
+      del(.facility)
+      del(.appname)
+      del(.procid)
+      del(.msgid)
+      del(.structured_data)
+      
+      if length(.message) > 10000 {
+        .message = slice!(.message, 0, 10000)
+        .truncated = true
+      }
+
+  # Merge all logs together
+  merge_logs:
+    type: remap
+    inputs: ["cleanup_journald", "cleanup_syslog"]
+    source: |
+      .kafka_key = .hostname
+
+  # Add metadata to metrics (Note: Keeps them as Metric events)
+  format_metrics:
+    type: remap
+    inputs: ["host_metrics"]
+    source: |
+      # We add tags here, which Vector will include in the JSON output
+      .tags.hostname = get_hostname!()
+      .tags.environment = get_env_var!("ENVIRONMENT") ?? "homelab"
+      .tags.collector = "vector-edge"
+      # Adding a key for Kafka partitioning
+      .kafka_key = get_hostname!()
+
+# =============================================================================
+# SINKS
+# =============================================================================
+
+sinks:
+  kafka_logs:
+    type: kafka
+    inputs: ["merge_logs"]
+    bootstrap_servers: "${KAFKA_BROKERS:-100.109.78.25:9092,100.120.104.76:9092,100.68.40.33:9092}"
+    topic: test-infra-logs
+    encoding:
+      codec: json
+      except_fields: ["kafka_key"]
+    key_field: kafka_key
+    compression: snappy
+    batch:
+      max_bytes: 1048576
+      timeout_secs: 5
+    buffer:
+      type: disk
+      max_size: 268435456
+      when_full: block
+    librdkafka_options:
+      "acks": "all"
+      "enable.idempotence": "true"
+
+  kafka_metrics:
+    type: kafka
+    inputs: ["format_metrics"]
+    bootstrap_servers: "${KAFKA_BROKERS:?KAFKA_BROKERS environment variable required}"
+    topic: infra.metrics.system
+    encoding:
+      codec: json
+      except_fields: ["kafka_key"]
+    key_field: kafka_key
+    compression: snappy
+    batch:
+      max_bytes: 1048576
+      timeout_secs: 10
+    buffer:
+      type: disk
+      max_size: 268435456
+      when_full: drop_newest
+
+  local_backup_logs:
+    type: file
+    inputs: ["merge_logs"]
+    path: /var/log/vector/backup-logs-%Y-%m-%d.log
+    encoding:
+      codec: json
+
+  local_backup_metrics:
+    type: file
+    inputs: ["format_metrics"]
+    path: /var/log/vector/backup-metrics-%Y-%m-%d.log
+    encoding:
+      codec: json
+
+  prometheus_metrics:
+    type: prometheus_exporter
+    inputs: ["internal_metrics"]
+    address: 0.0.0.0:9598
+    default_namespace: vector_edge
+
+api:
+  enabled: true
+  address: 0.0.0.0:8686
+
+telemetry:
+  enabled: false
