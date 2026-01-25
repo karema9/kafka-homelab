@@ -1,0 +1,209 @@
+version: "3.9"
+
+################################################################################
+# DOCKER COMPOSE REFACTORING GUIDE — YAML ANCHORS
+#
+# Purpose:
+# This file provides structured, in-place instructions for refactoring a
+# Docker Compose configuration to use YAML anchors and merge keys.
+#
+# Goal:
+# - Reduce duplication
+# - Improve maintainability
+# - Avoid shallow-merge pitfalls
+# - Preserve clarity and debuggability
+#
+# IMPORTANT:
+# - YAML anchors are resolved at parse time, not runtime.
+# - Merges are shallow: nested maps are replaced, not merged.
+# - Always validate with `docker compose config`.
+################################################################################
+
+
+################################################################################
+# STEP 1 — IDENTIFY DUPLICATION
+#
+# Before creating anchors, scan the file and list repeated configuration:
+#
+# Common candidates:
+# - image
+# - restart policy
+# - logging configuration
+# - healthcheck definitions
+# - networks
+# - resource limits
+# - environment variables shared across services
+#
+# DO NOT anchor:
+# - Values that differ per service (ports, IDs, hostnames)
+# - One-off configurations used only once
+# - Highly volatile settings that change frequently
+################################################################################
+
+
+################################################################################
+# STEP 2 — DEFINE EXTENSION FIELDS (ANCHORS)
+#
+# Anchors should be defined using Compose extension fields (`x-*`).
+# This prevents accidental deployment and keeps intent explicit.
+#
+# Naming rules:
+# - Prefix with `x-`
+# - Use descriptive, domain-oriented names
+# - Avoid generic names like `common`, `base`, or `stuff`
+################################################################################
+
+
+# -------------------------------------------------------------------------------
+# 2.1 Service-level defaults
+# Use this for properties shared by MOST services.
+# Example: restart policy, logging, resource limits
+# -------------------------------------------------------------------------------
+x-service-defaults: &service_defaults
+  # restart: unless-stopped
+  # logging:
+  #   driver: json-file
+  #   options:
+  #     max-size: "10m"
+  #     max-file: "3"
+
+
+# -------------------------------------------------------------------------------
+# 2.2 Domain-specific defaults (e.g., Kafka)
+# Use this for image, networks, or domain-scoped configuration.
+# DO NOT place environment variables here unless they are identical everywhere.
+# -------------------------------------------------------------------------------
+x-kafka-service: &kafka_service
+  # image: confluentinc/cp-kafka:7.8.0
+  # networks:
+  #   - kafka-network
+  # healthcheck:
+  #   test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+  #   interval: 30s
+  #   timeout: 10s
+  #   retries: 5
+  #   start_period: 60s
+
+
+# -------------------------------------------------------------------------------
+# 2.3 Environment variable anchors
+# Environment variables MUST be anchored separately to avoid shallow-merge issues.
+# -------------------------------------------------------------------------------
+x-kafka-env: &kafka_env
+  # KAFKA_HEAP_OPTS: "-Xms1G -Xmx1G"
+  # KAFKA_NUM_IO_THREADS: 8
+  # KAFKA_LOG_RETENTION_HOURS: 168
+  # KAFKA_PROCESS_ROLES: "broker,controller"
+
+
+################################################################################
+# STEP 3 — APPLY ANCHORS USING MERGE KEYS
+#
+# Rules:
+# - Merge service-level anchors first
+# - Define environment as a map and merge environment anchors inside it
+# - Override only what must differ per service
+################################################################################
+
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Kafka Node 1
+  # ---------------------------------------------------------------------------
+  kafka-node1:
+    # Merge service defaults
+    # <<: *service_defaults
+
+    # Merge Kafka-specific defaults
+    # <<: *kafka_service
+
+    # hostname: kafka-node1
+    # container_name: kafka-node1
+    # ports:
+    #   - "9192:9092"
+
+    # Environment variables:
+    # - Always merge environment anchors INSIDE the environment map
+    environment:
+      # <<: *kafka_env
+      # KAFKA_NODE_ID: 1
+      # KAFKA_LISTENERS: "PLAINTEXT://kafka-node1:9092,CONTROLLER://kafka-node1:9093"
+      # CLUSTER_ID: "REPLACE_WITH_CLUSTER_ID"
+
+
+  # ---------------------------------------------------------------------------
+  # Kafka Node 2
+  # ---------------------------------------------------------------------------
+  kafka-node2:
+    # <<: *service_defaults
+    # <<: *kafka_service
+
+    # hostname: kafka-node2
+    # container_name: kafka-node2
+    # ports:
+    #   - "9194:9092"
+
+    environment:
+      # <<: *kafka_env
+      # KAFKA_NODE_ID: 2
+      # KAFKA_LISTENERS: "PLAINTEXT://kafka-node2:9092,CONTROLLER://kafka-node2:9093"
+      # CLUSTER_ID: "REPLACE_WITH_CLUSTER_ID"
+
+
+  # ---------------------------------------------------------------------------
+  # Kafka Node 3
+  # ---------------------------------------------------------------------------
+  kafka-node3:
+    # <<: *service_defaults
+    # <<: *kafka_service
+
+    # hostname: kafka-node3
+    # container_name: kafka-node3
+    # ports:
+    #   - "9196:9092"
+
+    environment:
+      # <<: *kafka_env
+      # KAFKA_NODE_ID: 3
+      # KAFKA_LISTENERS: "PLAINTEXT://kafka-node3:9092,CONTROLLER://kafka-node3:9093"
+      # CLUSTER_ID: "REPLACE_WITH_CLUSTER_ID"
+
+
+################################################################################
+# STEP 4 — VALIDATION CHECKLIST
+#
+# Always validate after introducing anchors.
+#
+# 1. Validate syntax:
+#    docker compose config
+#
+# 2. Inspect expanded output:
+#    - Ensure all expected keys are present
+#    - Verify environment variables were not overwritten
+#
+# 3. Start the stack:
+#    docker compose up -d
+#
+# 4. Verify:
+#    - All containers start
+#    - Health checks pass
+#    - No missing environment variables
+################################################################################
+
+
+################################################################################
+# STEP 5 — DESIGN REVIEW
+#
+# Ask yourself:
+#
+# - Did anchors reduce duplication meaningfully?
+# - Is the file easier to read than before?
+# - Can a new team member understand the structure quickly?
+# - Are anchors shallow and intentional, not deeply chained?
+#
+# If readability decreased, consider:
+# - Fewer anchors
+# - More explicit configuration
+# - Splitting files by concern
+################################################################################
