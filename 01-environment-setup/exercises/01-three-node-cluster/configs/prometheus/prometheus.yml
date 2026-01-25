@@ -1,0 +1,75 @@
+
+
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+
+  # ------------------------------------------------------------
+  # PROMETHEUS SELF
+  # ------------------------------------------------------------
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "prometheus:9090"
+
+  # ------------------------------------------------------------
+  # KAFKA BROKERS (JMX EXPORTER)
+  # ------------------------------------------------------------
+  - job_name: "kafka-brokers"
+    static_configs:
+      - targets:
+          - "kafka-node1:7071"
+          - "kafka-node2:7071"
+          - "kafka-node3:7071"
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: "(kafka-node[0-9]+):7071"
+        target_label: kafka_broker
+        replacement: "$1"
+
+  # ------------------------------------------------------------
+  # KAFKA CONTROLLER METRICS (KRaft)
+  # (Same JMX endpoint, filtered by metrics)
+  # ------------------------------------------------------------
+  - job_name: "kafka-controller"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "kafka-node1:7071"
+          - "kafka-node2:7071"
+          - "kafka-node3:7071"
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "kafka_controller_.*|kafka_raft_.*"
+        action: keep
+
+  # ------------------------------------------------------------
+  # JVM METRICS (GC, HEAP, THREADS)
+  # ------------------------------------------------------------
+  - job_name: "kafka-jvm"
+    static_configs:
+      - targets:
+          - "kafka-node1:7071"
+          - "kafka-node2:7071"
+          - "kafka-node3:7071"
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "jvm_.*|process_.*"
+        action: keep
+
+  # ------------------------------------------------------------
+  # KAFKA REQUEST / NETWORK METRICS
+  # ------------------------------------------------------------
+  - job_name: "kafka-requests"
+    static_configs:
+      - targets:
+          - "kafka-node1:7071"
+          - "kafka-node2:7071"
+          - "kafka-node3:7071"
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "kafka_network_.*|kafka_server_.*|kafka_request_.*"
+        action: keep

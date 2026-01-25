@@ -1,0 +1,75 @@
+
+
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+
+rules:
+
+  # ============================================================
+  # BROKER TOPIC METRICS (PER TOPIC)
+  # ============================================================
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=(BytesInPerSec|BytesOutPerSec|MessagesInPerSec), topic=(.+)><>Count'
+    name: kafka_topic_$1_total
+    labels:
+      topic: "$2"
+
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=(BytesInPerSec|BytesOutPerSec|MessagesInPerSec)><>Count'
+    name: kafka_cluster_$1_total
+
+  # ============================================================
+  # PRODUCE / FETCH REQUEST RATES
+  # ============================================================
+  - pattern: 'kafka.network<type=RequestMetrics, name=RequestsPerSec, request=(Produce|FetchConsumer|FetchFollower)><>Count'
+    name: kafka_request_$1_total
+
+  # ============================================================
+  # LOG SIZE (PER TOPIC / PARTITION)
+  # ============================================================
+  - pattern: 'kafka.log<type=Log, name=Size, topic=(.+), partition=(\d+)><>Value'
+    name: kafka_topic_partition_log_size_bytes
+    labels:
+      topic: "$1"
+      partition: "$2"
+
+  # ============================================================
+  # PARTITION COUNT (PER TOPIC)
+  # ============================================================
+  - pattern: 'kafka.cluster<type=Partition, name=PartitionCount, topic=(.+)><>Value'
+    name: kafka_topic_partition_count
+    labels:
+      topic: "$1"
+
+  # ============================================================
+  # UNDER-REPLICATED PARTITIONS (CLUSTER HEALTH)
+  # ============================================================
+  - pattern: 'kafka.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value'
+    name: kafka_under_replicated_partitions
+
+  # ============================================================
+  # ISR SHRINK / EXPAND (VERY IMPORTANT)
+  # ============================================================
+  - pattern: 'kafka.server<type=ReplicaManager, name=(IsrShrinksPerSec|IsrExpandsPerSec)><>Count'
+    name: kafka_$1_total
+
+  # ============================================================
+  # CONTROLLER / KRAFT METRICS
+  # ============================================================
+  - pattern: 'kafka.controller<type=KafkaController, name=(ActiveControllerCount|OfflinePartitionsCount)><>Value'
+    name: kafka_controller_$1
+
+  - pattern: 'kafka.raft<type=KafkaRaftMetrics, name=(LeaderCount|UncommittedEntries)><>Value'
+    name: kafka_raft_$1
+
+  # ============================================================
+  # JVM (REQUIRED FOR GRAFANA DASHBOARDS)
+  # ============================================================
+  - pattern: 'java.lang<type=Memory><>HeapMemoryUsage.used'
+    name: jvm_heap_used_bytes
+
+  - pattern: 'java.lang<type=Threading><>ThreadCount'
+    name: jvm_threads
+
+  - pattern: 'java.lang<type=GarbageCollector, name=(.+)><>CollectionTime'
+    name: jvm_gc_collection_time_ms
+    labels:
+      gc: "$1"
