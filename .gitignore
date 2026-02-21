@@ -1,0 +1,13 @@
+# Kafka / system artifacts
+*.checkpoint
+*checkpoint
+
+*.log
+*.index
+*.snapshot
+*.lock
+*.metadata
+*.timeindex
+*state
+*properties
+leader-epoch-checkpoint
