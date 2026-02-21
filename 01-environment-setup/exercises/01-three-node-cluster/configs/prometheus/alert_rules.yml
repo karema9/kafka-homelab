@@ -1,0 +1,47 @@
+
+
+
+groups:
+  - name: kafka-alerts
+    rules:
+      - alert: BrokerDown
+        expr: up{job="kafka"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Broker {{ $labels.instance }} is down"
+      
+      
+      - alert: UnderReplicatedPartitions
+        expr: kafka_server_ReplicaManager_UnderReplicatedPartitions > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cluster has under-replicated partitions" 
+          
+      - alert: HighConsumerLag
+        expr: kafka_consumergroup_lag > 10000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Consumer group {{ $labels.consumergoup }} has a high consumer lag"
+          description: "Consumer group {{ $labels.consumergroup }} on topic {{ $labels.topic }} has a lag of {{ $value }} messages (threshold: 10000)"
+
+      - alerts: DiskSpaceLow
+        expr: node_filesystem_avail_bytes / node_filesystem_size_bytes < 0.15
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space severely low on the cluster"
+          description: ""
+
+      - alerts: OfflinePartitions
+        expr: kafka_controller_KafkaController_OfflinePartitionsCount > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Topic has offline partitions"
