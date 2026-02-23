@@ -133,6 +133,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    depends_on:
+      kafka-node1: 
+        condition: service_healthy
+      kafka-node2:
+        condition: service_healthy
+      kafka-node3:
+        condition: service_healthy
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-node1:9092,kafka-node2:9092,kafka-node3:9092
