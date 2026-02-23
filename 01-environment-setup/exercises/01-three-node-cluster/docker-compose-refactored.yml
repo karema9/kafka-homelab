@@ -1,0 +1,177 @@
+version: '3.8'
+
+networks:
+  kafka-network:
+    driver: bridge
+
+volumes:
+  grafana_data:
+  kafka-node1-data:
+  kafka-node2-data:
+  kafka-node3-data:
+
+# ==========================================
+# ANCHORS & EXTENSION FIELDS
+# ==========================================
+x-service-defaults: &service_defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-kafka-service: &kafka_service
+  image: confluentinc/cp-kafka:7.8.0
+  networks:
+    - kafka-network
+  healthcheck:
+    test: ["CMD-SHELL", "unset KAFKA_OPTS; kafka-broker-api-versions --bootstrap-server localhost:9092"]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+    start_period: 60s
+
+x-kafka-env: &kafka_env
+  KAFKA_PROCESS_ROLES: 'broker,controller'
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
+  KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+  KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+  KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+  KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+  KAFKA_MIN_INSYNC_REPLICAS: 2
+  KAFKA_JMX_PORT: 9101
+  KAFKA_JMX_HOSTNAME: localhost
+  CLUSTER_ID: '33a278a3-4856-4046-b151-6b6044f43b1b'
+  KAFKA_HEAP_OPTS: "-Xms1G -Xmx1G"
+  KAFKA_NUM_IO_THREADS: 8
+  KAFKA_LOG_RETENTION_HOURS: 168
+  # Fixed double key typo in your snippet
+  KAFKA_OPTS: "-javaagent:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar=7071:/usr/share/jmx_exporter/kafka_config.yml"
+
+# ==========================================
+# SERVICES
+# ==========================================
+services:
+  kafka-node1:
+    <<: [*service_defaults,  *kafka_service]
+    hostname: kafka-node1
+    container_name: kafka-node1
+    ports:
+     - "9192:9092"
+     - "9193:9093"
+    environment:
+      <<: *kafka_env
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENERS: "PLAINTEXT://kafka-node1:9092,CONTROLLER://kafka-node1:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-node1:9092"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-node1:9093,2@kafka-node2:9093,3@kafka-node3:9093'
+    volumes:
+      - kafka-node1-data:/var/lib/kafka/data
+      - ./configs/jmx/jmx_prometheus_javaagent.jar:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar
+      - ./configs/jmx/kafka_config.yml:/usr/share/jmx_exporter/kafka_config.yml
+
+  kafka-node2:
+    <<: [*service_defaults,  *kafka_service]
+    hostname: kafka-node2
+    container_name: kafka-node2
+    ports:
+      - "9194:9092"
+      - "9195:9093"
+    environment:
+      <<: *kafka_env
+      KAFKA_NODE_ID: 2
+      KAFKA_LISTENERS: "PLAINTEXT://kafka-node2:9092,CONTROLLER://kafka-node2:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-node2:9092"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-node1:9093,2@kafka-node2:9093,3@kafka-node3:9093'
+    volumes:
+      -  kafka-node2-data:/var/lib/kafka/data
+      - ./configs/jmx/jmx_prometheus_javaagent.jar:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar
+      - ./configs/jmx/kafka_config.yml:/usr/share/jmx_exporter/kafka_config.yml
+
+  kafka-node3:
+    <<: [*service_defaults,  *kafka_service]
+    hostname: kafka-node3
+    container_name: kafka-node3
+    ports:
+      - "9196:9092"
+      - "9197:9093"
+    environment:
+      <<: *kafka_env
+      KAFKA_NODE_ID: 3
+      KAFKA_LISTENERS: "PLAINTEXT://kafka-node3:9092,CONTROLLER://kafka-node3:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-node3:9092"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-node1:9093,2@kafka-node2:9093,3@kafka-node3:9093'
+    volumes:
+      - kafka-node3-data:/var/lib/kafka/data
+      - ./configs/jmx/jmx_prometheus_javaagent.jar:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar
+      - ./configs/jmx/kafka_config.yml:/usr/share/jmx_exporter/kafka_config.yml
+  
+ # ------------------------------------------------------------
+ # KAFKA UI
+ # ------------------------------------------------------------
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-cluster-ui
+    ports:  
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-node1:9092,kafka-node2:9092,kafka-node3:9092
+    depends_on:
+      kafka-node1:
+        condition: service_healthy
+      kafka-node2:
+        condition: service_healthy
+      kafka-node3:
+        condition: service_healthy
+    networks:
+      - kafka-network
+
+
+  # ------------------------------------------------------------
+  # OBSERVABILITY STACK
+  # ------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9190:9090"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - kafka-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    networks:
+      - kafka-network

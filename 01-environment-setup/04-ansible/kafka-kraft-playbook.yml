@@ -1,0 +1,427 @@
+---
+- name: Deploy Kafka cluster with KRaft (ZooKeeper-less)
+  hosts: kafka
+  become: true
+  vars:
+    kafka_base: "{{ kafka_install_dir }}"
+    kafka_home: "{{ kafka_install_dir }}/current"
+    kraft_cluster_id: "{{ kraft_cluster_uuid | default('') }}"  # Will be generated if empty
+    kafka_nodes:
+      - { id: 1, host: <ENTER_IP> }
+      - { id: 2, host: <ENTER_IP> }
+      - { id: 3, host: <ENTER_IP> }
+    # Node roles: 'controller', 'broker', or 'combined' (controller+broker)
+    node_role: "combined"  # Change per host in inventory
+    
+  tasks:
+
+  #############################################################################
+  # SECTION 1: CLEANUP - Nuke existing Kafka installation
+  #############################################################################
+
+  - name: Check if Kafka service exists
+    stat:
+      path: /etc/systemd/system/kafka.service
+    register: kafka_service_file
+
+  - name: Check if ZooKeeper service exists (legacy)
+    stat:
+      path: /etc/systemd/system/zookeeper.service
+    register: zookeeper_service_file
+
+  - name: Stop Kafka service if running
+    systemd:
+      name: kafka
+      state: stopped
+    when: kafka_service_file.stat.exists
+    ignore_errors: yes
+
+  - name: Stop ZooKeeper service if running (legacy cleanup)
+    systemd:
+      name: zookeeper
+      state: stopped
+    when: zookeeper_service_file.stat.exists
+    ignore_errors: yes
+
+  - name: Remove Kafka systemd service file
+    file:
+      path: /etc/systemd/system/kafka.service
+      state: absent
+    when: kafka_service_file.stat.exists
+
+  - name: Remove ZooKeeper systemd service file (legacy cleanup)
+    file:
+      path: /etc/systemd/system/zookeeper.service
+      state: absent
+    when: zookeeper_service_file.stat.exists
+
+  - name: Reload systemd after service removal
+    systemd:
+      daemon_reload: yes
+
+  - name: Check if Kafka installation directory exists
+    stat:
+      path: "{{ kafka_base }}"
+    register: kafka_install_exists
+
+  - name: Backup existing Kafka installation (optional safety measure)
+    command: "mv {{ kafka_base }} {{ kafka_base }}.backup.{{ ansible_date_time.epoch }}"
+    when: kafka_install_exists.stat.exists and kafka_install_exists.stat.isdir
+    ignore_errors: yes
+
+  - name: Remove Kafka installation directory
+    file:
+      path: "{{ kafka_base }}"
+      state: absent
+    when: kafka_install_exists.stat.exists
+
+  - name: Remove Kafka log directory
+    file:
+      path: "{{ kafka_log_dir }}"
+      state: absent
+
+  - name: Remove KRaft metadata directory
+    file:
+      path: "{{ kraft_metadata_dir }}"
+      state: absent
+
+  - name: Remove ZooKeeper data directory (legacy cleanup)
+    file:
+      path: "{{ zookeeper_data_dir | default('/var/lib/zookeeper') }}"
+      state: absent
+
+  - name: Display cleanup completion message
+    debug:
+      msg: "✅ Existing Kafka installation has been removed. Proceeding with fresh KRaft installation..."
+
+  #############################################################################
+  # SECTION 2: PREREQUISITES
+  #############################################################################
+
+  - name: Install required packages (OpenJDK, wget, tar, uuid-runtime)
+    apt:
+      name:
+        - openjdk-11-jdk
+        - wget
+        - tar
+        - uuid-runtime  # For generating cluster UUID
+      state: present
+      update_cache: yes
+
+  #############################################################################
+  # SECTION 3: DIRECTORY STRUCTURE
+  #############################################################################
+
+  - name: Create kafka install dir
+    file:
+      path: "{{ kafka_base }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '0755'
+
+  - name: Create kafka log dir
+    file:
+      path: "{{ kafka_log_dir }}"
+      state: directory
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: '0755'
+
+  - name: Create KRaft metadata dir
+    file:
+      path: "{{ kraft_metadata_dir }}"
+      state: directory
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: '0755'
+
+  #############################################################################
+  # SECTION 4: DOWNLOAD & EXTRACT KAFKA
+  #############################################################################
+
+  - name: Download Kafka tarball
+    get_url:
+      url: "{{ kafka_download_url }}"
+      dest: /tmp/{{ kafka_artifact }}.tgz
+      mode: '0644'
+    register: kafka_download
+
+  - name: Extract Kafka tarball
+    unarchive:
+      src: /tmp/{{ kafka_artifact }}.tgz
+      dest: "{{ kafka_base }}"
+      remote_src: yes
+      creates: "{{ kafka_base }}/{{ kafka_artifact }}"
+
+  - name: Check if current is a directory (not a symlink)
+    stat:
+      path: "{{ kafka_base }}/current"
+    register: current_path
+
+  - name: Remove current directory if it exists and is not a symlink
+    file:
+      path: "{{ kafka_base }}/current"
+      state: absent
+    when: current_path.stat.exists and current_path.stat.isdir and not current_path.stat.islnk
+
+  - name: Create symlink current -> kafka version
+    file:
+      src: "{{ kafka_base }}/{{ kafka_artifact }}"
+      dest: "{{ kafka_base }}/current"
+      state: link
+      force: yes
+
+  - name: Ensure ownership of kafka directory
+    file:
+      path: "{{ kafka_base }}"
+      state: directory
+      recurse: yes
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+
+  - name: Create kafka parent log dir
+    file:
+      path: "{{ kafka_home }}/logs"
+      state: directory
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: '0755'
+
+  #############################################################################
+  # SECTION 5: GENERATE KRAFT CLUSTER UUID (run once on first node)
+  #############################################################################
+
+  - name: Check if cluster UUID is already set
+    set_fact:
+      generate_uuid: "{{ kraft_cluster_id == '' }}"
+
+  - name: Generate KRaft cluster UUID
+    shell: "{{ kafka_home }}/bin/kafka-storage.sh random-uuid"
+    register: generated_uuid
+    run_once: true
+    when: generate_uuid | bool
+
+  - name: Set cluster UUID fact for all nodes
+    set_fact:
+      kraft_cluster_id: "{{ generated_uuid.stdout }}"
+    when: generate_uuid | bool
+
+  - name: Display cluster UUID
+    debug:
+      msg: "KRaft Cluster UUID: {{ kraft_cluster_id }}"
+
+  #############################################################################
+  # SECTION 6: CONFIGURE KAFKA (KRaft mode)
+  #############################################################################
+
+  - name: Determine process.roles based on node_role
+    set_fact:
+      process_roles: >-
+        {%- if node_role == 'controller' -%}
+        controller
+        {%- elif node_role == 'broker' -%}
+        broker
+        {%- else -%}
+        broker,controller
+        {%- endif -%}
+
+  - name: Determine controller.quorum.voters string
+    set_fact:
+      controller_quorum_voters: >-
+        {%- for node in kafka_nodes -%}
+        {{ node.id }}@{{ node.host }}:9093
+        {%- if not loop.last %},{% endif -%}
+        {%- endfor -%}
+
+  - name: Configure kraft/server.properties (KRaft mode)
+    copy:
+      dest: "{{ kafka_home }}/config/kraft/server.properties"
+      owner: root
+      group: root
+      mode: '0644'
+      content: |
+        ############################# Server Basics #############################
+        
+        # The role of this server. Can be 'broker', 'controller', or 'broker,controller'
+        process.roles={{ process_roles }}
+        
+        # The node id (must be unique across cluster)
+        node.id={{ broker_id }}
+        
+        ############################# Controller Settings #############################
+        
+        # Controller quorum voters (all controller nodes)
+        controller.quorum.voters={{ controller_quorum_voters }}
+        
+        ############################# Socket Server Settings #############################
+        
+        # Listeners for different roles
+        {% if 'broker' in process_roles %}
+        # Broker listener
+        listeners=PLAINTEXT://{{ kafka_ip }}:9092,CONTROLLER://{{ kafka_ip }}:9093
+        advertised.listeners=PLAINTEXT://{{ kafka_ip }}:9092
+        {% else %}
+        # Controller-only listener
+        listeners=CONTROLLER://{{ kafka_ip }}:9093
+        {% endif %}
+        
+        # Listener security protocol map
+        listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+        
+        # Controller listener name
+        controller.listener.names=CONTROLLER
+        
+        # Inter-broker listener name
+        {% if 'broker' in process_roles %}
+        inter.broker.listener.name=PLAINTEXT
+        {% endif %}
+        
+        ############################# Network Settings #############################
+        
+        num.network.threads=3
+        num.io.threads=8
+        socket.send.buffer.bytes=102400
+        socket.receive.buffer.bytes=102400
+        socket.request.max.bytes=104857600
+        
+        ############################# Log Basics #############################
+        
+        # Log directory
+        log.dirs={{ kafka_log_dir }}
+        
+        # Default number of partitions
+        num.partitions=1
+        
+        # Number of threads per data directory for log recovery
+        num.recovery.threads.per.data.dir=1
+        
+        ############################# Log Retention Policy #############################
+        
+        # Retention time (hours)
+        log.retention.hours=168
+        
+        # Maximum size of a log segment
+        log.segment.bytes=1073741824
+        
+        # Check interval for log retention
+        log.retention.check.interval.ms=300000
+        
+        ############################# Replication Settings #############################
+        
+        {% if 'broker' in process_roles %}
+        # Replication factor for internal topics
+        offsets.topic.replication.factor=3
+        transaction.state.log.replication.factor=3
+        transaction.state.log.min.isr=2
+        
+        # Default replication settings
+        default.replication.factor=3
+        min.insync.replicas=2
+        {% endif %}
+        
+        ############################# Group Coordinator Settings #############################
+        
+        group.initial.rebalance.delay.ms=0
+        
+        ############################# Miscellaneous #############################
+        
+        # Allow auto-creation of topics
+        auto.create.topics.enable=true
+
+  #############################################################################
+  # SECTION 7: FORMAT STORAGE (KRaft initialization)
+  #############################################################################
+
+  - name: Check if KRaft metadata is already formatted
+    stat:
+      path: "{{ kraft_metadata_dir }}/meta.properties"
+    register: kraft_formatted
+
+  - name: Format KRaft storage (only if not already formatted)
+    shell: >
+      {{ kafka_home }}/bin/kafka-storage.sh format
+      -t {{ kraft_cluster_id }}
+      -c {{ kafka_home }}/config/kraft/server.properties
+    become_user: "{{ ansible_user }}"
+    when: not kraft_formatted.stat.exists
+
+  - name: Display storage format completion
+    debug:
+      msg: "✅ KRaft storage formatted with cluster UUID: {{ kraft_cluster_id }}"
+    when: not kraft_formatted.stat.exists
+
+  #############################################################################
+  # SECTION 8: CREATE SYSTEMD SERVICE
+  #############################################################################
+
+  - name: Create systemd unit for Kafka (KRaft mode)
+    copy:
+      dest: /etc/systemd/system/kafka.service
+      content: |
+        [Unit]
+        Description=Apache Kafka Server (KRaft mode)
+        Documentation=https://kafka.apache.org/documentation/
+        After=network.target
+
+        [Service]
+        Type=simple
+        User={{ ansible_user }}
+        Group={{ ansible_user }}
+        Environment=KAFKA_HOME={{ kafka_home }}
+        Environment=JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+        ExecStart={{ kafka_home }}/bin/kafka-server-start.sh {{ kafka_home }}/config/kraft/server.properties
+        ExecStop={{ kafka_home }}/bin/kafka-server-stop.sh
+        Restart=on-failure
+        RestartSec=10
+        LimitNOFILE=100000
+
+        [Install]
+        WantedBy=multi-user.target
+      mode: '0644'
+    notify: reload systemd
+
+  - name: Flush handlers to reload systemd
+    meta: flush_handlers
+
+  #############################################################################
+  # SECTION 9: START KAFKA SERVICE
+  #############################################################################
+
+  - name: Enable and start Kafka service
+    systemd:
+      name: kafka
+      enabled: yes
+      state: started
+
+  - name: Wait for Kafka to accept connections (broker port)
+    wait_for:
+      host: "{{ kafka_ip | default(ansible_host) }}"
+      port: 9092
+      timeout: 60
+    when: "'broker' in process_roles"
+
+  - name: Wait for Kafka controller to accept connections
+    wait_for:
+      host: "{{ kafka_ip | default(ansible_host) }}"
+      port: 9093
+      timeout: 60
+
+  - name: Display success message
+    debug:
+      msg: |
+        ✅ Kafka cluster with KRaft successfully deployed!
+        
+        Cluster UUID: {{ kraft_cluster_id }}
+        Node ID: {{ broker_id }}
+        Role: {{ process_roles }}
+        Broker Endpoint: {{ kafka_ip }}:9092
+        Controller Endpoint: {{ kafka_ip }}:9093
+        
+        Verify cluster status:
+          {{ kafka_home }}/bin/kafka-metadata.sh --snapshot {{ kraft_metadata_dir }}/__cluster_metadata-0/00000000000000000000.log --print-contents
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
